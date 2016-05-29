@@ -1,2 +1,2 @@
-#Reproducible Research Project 1
+#Coursera's Reproducible Research Project 1
 Submitting Rmd, MD, and HTML files
