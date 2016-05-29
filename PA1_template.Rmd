@@ -1,0 +1,110 @@
+---
+title: "PA1_template.Rmd"
+author: "Bill Lancaster"
+date: "May 28, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Fitbit Activity Monitoring Data
+
+#-----------------------------------------------------------------------------------
+
+#### Loading and preprocessing the data
+```{r Loading and preprocessing the data}
+setwd("~/Coursera/Course 5 Rep/Project_1") #Setting the directory to correct location on computer. 
+
+download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip", destfile = "activity.zip", mode="wb")
+unzip("activity.zip")
+df<-read.table("activity.csv", sep=",", na.strings = "NA", header=T)
+```
+Data is downloaded into data frame called df. 
+For reproducibility purposes the source zip file and the csv file are preserved in the folder. 
+
+#-----------------------------------------------------------------------------------
+
+#### What is mean total number of steps taken per day?
+```{r What is mean total number of steps taken per day}
+totalsteps <-aggregate(steps ~ date, df, sum) #calulates the total number of steps taken per day
+hist(totalsteps$steps, main = paste("Histogram of Steps Taken per Day"))
+summary(totalsteps$steps) #show mean and median of steps taken per day. 
+```
+Note the histogram above and summary statistics contains missing data.
+
+#-----------------------------------------------------------------------------------
+
+#### What is the average daily activity pattern?
+```{r What is the average daily activity pattern}
+timeinterval<-aggregate(steps ~ interval, df, mean)
+plot(timeinterval, type="l",main = paste("Avg of Steps Taken per 5-Minute Interval"), xlab="5 Minute Intervals")
+abline(h=mean(timeinterval$steps), col="blue", lty = 3)
+timeinterval[which(timeinterval$steps == max(timeinterval$steps, na.rm = TRUE)), ]
+```
+Above is the 5-minute interval, on average across all the days in the dataset
+
+#-----------------------------------------------------------------------------------
+
+#### Imputing missing values, and see if histogram is different?
+```{r Imputing missing values}
+totalNA <-sum(is.na(df$steps)) 
+paste("The total number of NA records in this dataset is", totalNA)
+
+idf<-df #create a data frame to have imputed values
+
+##the strategy for imputing missing data is to use the mean for the 5-minute interval
+idf$steps[which(is.na(idf))] <-timeinterval$steps #imputes the mean of the 5-minute interval for NA
+
+## test to compare before and after data
+head(df)
+head(idf)
+tail(df)
+tail(idf)
+
+
+itotalsteps <-aggregate(steps ~ date, idf, sum) #calulates the total number of steps taken per day
+hist(itotalsteps$steps, main = paste("Histogram of Steps Taken per Day"))
+summary(itotalsteps$steps) #show mean and median of steps taken per day. 
+```
+There is no difference with the histogram between the data with the NA's and the data with the imputed interval. 
+
+#-----------------------------------------------------------------------------------
+
+####Are there differences in activity patterns between weekdays and weekends?
+```{r Difference between weekdays and weekends}
+
+library(chron)
+library(lattice)
+
+
+idfw<-idf
+idfw$date <-as.Date(idfw$date) #Convert date from a factor to date format
+idfw$dayofwk<-weekdays(idfw$date)
+idfw$weekend<-is.weekend(idfw$date) #Creates binary result for wkday vs. wkend
+
+
+idfwf<-subset(idfw, idfw$weekend=="FALSE") ##this is the weeday data
+idwftimeinterval<-aggregate(steps ~ interval, idfwf, mean)
+idwftimeinterval$weekday<-"weekday"
+idfwt<-subset(idfw, idfw$weekend=="TRUE") ## this is the weekend data
+idwttimeinterval<-aggregate(steps ~ interval, idfwt, mean)
+idwttimeinterval$weekday<-"weekend"
+
+idwtticomb <-rbind(idwftimeinterval,idwttimeinterval)
+
+xyplot(steps ~ interval | weekday, data = idwtticomb,  main='Fitbit Weekday vs. Weekend', type = "l", xlab = "5 Second Intervals", 
+    ylab = "Avg Number of steps", index.cond=list(c(2,1)),layout = c(1, 2))
+
+```
+
+
+
+
+
+
+
+
+
